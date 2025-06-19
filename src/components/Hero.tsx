@@ -1,14 +1,20 @@
 
 import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Points, PointMaterial } from "@react-three/drei";
 import { motion } from "framer-motion";
-import * as random from "maath/random";
 import * as THREE from "three";
 
 const ParticleNetwork = () => {
   const ref = useRef<THREE.Points>(null);
-  const [sphere] = useMemo(() => [random.inSphere(new Float32Array(5000), { radius: 1.5 })], []);
+  const particlesPosition = useMemo(() => {
+    const positions = new Float32Array(5000 * 3);
+    for (let i = 0; i < 5000; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 3;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 3;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 3;
+    }
+    return positions;
+  }, []);
 
   useFrame((state, delta) => {
     if (ref.current) {
@@ -19,15 +25,23 @@ const ParticleNetwork = () => {
 
   return (
     <group rotation={[0, 0, Math.PI / 4]}>
-      <Points ref={ref} positions={sphere} stride={3} frustumCulled={false}>
-        <PointMaterial
-          transparent
-          color="#13e0b3"
+      <points ref={ref}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={particlesPosition.length / 3}
+            array={particlesPosition}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <pointsMaterial
           size={0.005}
-          sizeAttenuation={true}
-          depthWrite={false}
+          color="#13e0b3"
+          transparent
+          opacity={0.8}
+          sizeAttenuation
         />
-      </Points>
+      </points>
     </group>
   );
 };
