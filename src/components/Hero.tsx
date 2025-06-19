@@ -29,17 +29,17 @@ const ParticleNetwork = () => {
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
-            count={particlesPosition.length / 3}
-            array={particlesPosition}
-            itemSize={3}
+            args={[particlesPosition, 3]}
           />
         </bufferGeometry>
         <pointsMaterial
-          size={0.005}
-          color="#13e0b3"
-          transparent
-          opacity={0.8}
-          sizeAttenuation
+          args={[{
+            size: 0.005,
+            color: "#13e0b3",
+            transparent: true,
+            opacity: 0.8,
+            sizeAttenuation: true
+          }]}
         />
       </points>
     </group>
