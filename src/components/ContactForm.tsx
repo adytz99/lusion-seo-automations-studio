@@ -1,9 +1,9 @@
-
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useState, useRef } from "react";
 import { Send, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeInput, validateEmail, validatePhone, formRateLimiter, logSecurityEvent } from "@/utils/security";
 
 export const ContactForm = () => {
   const [formData, setFormData] = useState({
@@ -12,17 +12,76 @@ export const ContactForm = () => {
     phone: "",
     budget: "",
     message: "",
-    gdprConsent: false
+    gdprConsent: false,
+    honeypot: "" // Anti-bot honeypot field
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
   
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    // Check honeypot field (should be empty)
+    if (formData.honeypot) {
+      logSecurityEvent("Bot detected via honeypot", { honeypot: formData.honeypot });
+      errors.honeypot = "Bot detected";
+      return errors;
+    }
+
+    // Validate required fields
+    if (!formData.name.trim()) {
+      errors.name = "Numele este obligatoriu";
+    } else if (formData.name.length > 100) {
+      errors.name = "Numele este prea lung";
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = "Email-ul este obligatoriu";
+    } else if (!validateEmail(formData.email)) {
+      errors.email = "Email-ul nu este valid";
+    }
+
+    if (formData.phone && !validatePhone(formData.phone)) {
+      errors.phone = "Numărul de telefon nu este valid";
+    }
+
+    if (!formData.message.trim()) {
+      errors.message = "Mesajul este obligatoriu";
+    } else if (formData.message.length > 2000) {
+      errors.message = "Mesajul este prea lung";
+    }
+
+    return errors;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Rate limiting check
+    const clientId = `${navigator.userAgent}-${window.location.hostname}`;
+    if (!formRateLimiter.isAllowed(clientId)) {
+      logSecurityEvent("Rate limit exceeded", { clientId });
+      toast({
+        title: "Prea multe încercări",
+        description: "Vă rugăm să așteptați înainte de a trimite din nou.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate form
+    const errors = validateForm();
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      logSecurityEvent("Form validation failed", { errors: Object.keys(errors) });
+      return;
+    }
+
     if (!formData.gdprConsent) {
       toast({
         title: "Eroare",
@@ -34,6 +93,15 @@ export const ContactForm = () => {
 
     setIsSubmitting(true);
     
+    // Log successful form submission attempt
+    logSecurityEvent("Form submission started", {
+      name: formData.name.substring(0, 3) + "***", // Partial logging for privacy
+      email: formData.email.split('@')[0].substring(0, 3) + "***@" + formData.email.split('@')[1],
+      hasPhone: !!formData.phone,
+      budget: formData.budget,
+      messageLength: formData.message.length
+    });
+
     // Simulate form submission
     setTimeout(() => {
       setIsSubmitting(false);
@@ -42,6 +110,8 @@ export const ContactForm = () => {
         description: "Răspundem în maxim 24 de ore. Mulțumim pentru încredere!",
       });
       
+      logSecurityEvent("Form submission completed successfully");
+      
       // Reset form
       setFormData({
         name: "",
@@ -49,17 +119,35 @@ export const ContactForm = () => {
         phone: "",
         budget: "",
         message: "",
-        gdprConsent: false
+        gdprConsent: false,
+        honeypot: ""
       });
+      setValidationErrors({});
     }, 2000);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    let sanitizedValue = value;
+
+    // Sanitize input for text fields
+    if (type === 'text' || type === 'email' || type === 'tel') {
+      sanitizedValue = sanitizeInput(value);
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : sanitizedValue
     }));
+
+    // Clear validation error when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   return (
@@ -90,6 +178,17 @@ export const ContactForm = () => {
           className="bg-gradient-to-br from-[#1a1a2e]/50 to-[#16213e]/30 backdrop-blur-lg border border-[#13e0b3]/20 rounded-2xl p-8"
         >
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Honeypot field - hidden from users */}
+            <input
+              type="text"
+              name="honeypot"
+              value={formData.honeypot}
+              onChange={handleChange}
+              style={{ display: 'none' }}
+              tabIndex={-1}
+              autoComplete="off"
+            />
+
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="name" className="block text-white font-medium mb-2">
@@ -102,9 +201,15 @@ export const ContactForm = () => {
                   required
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:border-[#13e0b3] focus:outline-none focus:ring-2 focus:ring-[#13e0b3]/20 transition-all duration-300"
+                  className={`w-full px-4 py-3 bg-white/10 border rounded-lg text-white placeholder-white/50 focus:border-[#13e0b3] focus:outline-none focus:ring-2 focus:ring-[#13e0b3]/20 transition-all duration-300 ${
+                    validationErrors.name ? 'border-red-500' : 'border-white/20'
+                  }`}
                   placeholder="Ion Popescu"
+                  maxLength={100}
                 />
+                {validationErrors.name && (
+                  <p className="text-red-400 text-sm mt-1">{validationErrors.name}</p>
+                )}
               </div>
               
               <div>
@@ -118,9 +223,15 @@ export const ContactForm = () => {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:border-[#13e0b3] focus:outline-none focus:ring-2 focus:ring-[#13e0b3]/20 transition-all duration-300"
+                  className={`w-full px-4 py-3 bg-white/10 border rounded-lg text-white placeholder-white/50 focus:border-[#13e0b3] focus:outline-none focus:ring-2 focus:ring-[#13e0b3]/20 transition-all duration-300 ${
+                    validationErrors.email ? 'border-red-500' : 'border-white/20'
+                  }`}
                   placeholder="ion@company.ro"
+                  maxLength={254}
                 />
+                {validationErrors.email && (
+                  <p className="text-red-400 text-sm mt-1">{validationErrors.email}</p>
+                )}
               </div>
             </div>
 
@@ -135,9 +246,15 @@ export const ContactForm = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:border-[#13e0b3] focus:outline-none focus:ring-2 focus:ring-[#13e0b3]/20 transition-all duration-300"
+                  className={`w-full px-4 py-3 bg-white/10 border rounded-lg text-white placeholder-white/50 focus:border-[#13e0b3] focus:outline-none focus:ring-2 focus:ring-[#13e0b3]/20 transition-all duration-300 ${
+                    validationErrors.phone ? 'border-red-500' : 'border-white/20'
+                  }`}
                   placeholder="+40 xxx xxx xxx"
+                  maxLength={20}
                 />
+                {validationErrors.phone && (
+                  <p className="text-red-400 text-sm mt-1">{validationErrors.phone}</p>
+                )}
               </div>
               
               <div>
@@ -171,9 +288,18 @@ export const ContactForm = () => {
                 rows={5}
                 value={formData.message}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:border-[#13e0b3] focus:outline-none focus:ring-2 focus:ring-[#13e0b3]/20 transition-all duration-300 resize-vertical"
+                className={`w-full px-4 py-3 bg-white/10 border rounded-lg text-white placeholder-white/50 focus:border-[#13e0b3] focus:outline-none focus:ring-2 focus:ring-[#13e0b3]/20 transition-all duration-300 resize-vertical ${
+                  validationErrors.message ? 'border-red-500' : 'border-white/20'
+                }`}
                 placeholder="Spune-ne despre obiectivele tale, audiența țintă și ce servicii te interesează..."
+                maxLength={2000}
               />
+              {validationErrors.message && (
+                <p className="text-red-400 text-sm mt-1">{validationErrors.message}</p>
+              )}
+              <p className="text-white/50 text-sm mt-1">
+                {formData.message.length}/2000 caractere
+              </p>
             </div>
 
             <div className="flex items-start space-x-3">
