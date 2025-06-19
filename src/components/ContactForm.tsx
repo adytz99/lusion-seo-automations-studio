@@ -1,9 +1,11 @@
+
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useState, useRef } from "react";
 import { Send, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeInput, validateEmail, validatePhone, formRateLimiter, logSecurityEvent } from "@/utils/security";
+import { supabase } from "@/integrations/supabase/client";
 
 export const ContactForm = () => {
   const [formData, setFormData] = useState({
@@ -93,18 +95,31 @@ export const ContactForm = () => {
 
     setIsSubmitting(true);
     
-    // Log successful form submission attempt
-    logSecurityEvent("Form submission started", {
-      name: formData.name.substring(0, 3) + "***", // Partial logging for privacy
-      email: formData.email.split('@')[0].substring(0, 3) + "***@" + formData.email.split('@')[1],
-      hasPhone: !!formData.phone,
-      budget: formData.budget,
-      messageLength: formData.message.length
-    });
+    try {
+      // Log successful form submission attempt
+      logSecurityEvent("Form submission started", {
+        name: formData.name.substring(0, 3) + "***",
+        email: formData.email.split('@')[0].substring(0, 3) + "***@" + formData.email.split('@')[1],
+        hasPhone: !!formData.phone,
+        budget: formData.budget,
+        messageLength: formData.message.length
+      });
 
-    // Simulate form submission
-    setTimeout(() => {
-      setIsSubmitting(false);
+      // Send email using Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('send-contact-email', {
+        body: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          budget: formData.budget,
+          message: formData.message
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
       toast({
         title: "Mesaj trimis cu succes!",
         description: "Răspundem în maxim 24 de ore. Mulțumim pentru încredere!",
@@ -123,7 +138,19 @@ export const ContactForm = () => {
         honeypot: ""
       });
       setValidationErrors({});
-    }, 2000);
+
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      logSecurityEvent("Form submission failed", { error: error.message });
+      
+      toast({
+        title: "Eroare la trimiterea mesajului",
+        description: "A apărut o eroare. Vă rugăm să încercați din nou.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
