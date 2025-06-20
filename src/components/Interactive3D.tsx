@@ -86,14 +86,12 @@ const InteractiveGeometry = () => {
           />
         </bufferGeometry>
         <pointsMaterial
-          args={[{
-            size: 0.02,
-            color: "#13e0b3",
-            transparent: true,
-            opacity: 0.6,
-            sizeAttenuation: true,
-            blending: THREE.AdditiveBlending
-          }]}
+          size={0.02}
+          color="#13e0b3"
+          transparent
+          opacity={0.6}
+          sizeAttenuation
+          blending={THREE.AdditiveBlending}
         />
       </points>
 
