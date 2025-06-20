@@ -93,10 +93,10 @@ const InteractiveGeometry = () => {
           />
         </bufferGeometry>
         <pointsMaterial
-          size={0.015}
+          size={0.025}
           color="#13e0b3"
           transparent
-          opacity={0.8}
+          opacity={0.9}
           sizeAttenuation
           blending={THREE.AdditiveBlending}
         />
@@ -113,7 +113,7 @@ const InteractiveGeometry = () => {
             <meshPhongMaterial
               color={sphere.color}
               transparent
-              opacity={0.6}
+              opacity={0.7}
               wireframe={index % 2 === 0}
             />
           </mesh>
@@ -121,10 +121,10 @@ const InteractiveGeometry = () => {
       </group>
 
       {/* Enhanced lighting */}
-      <ambientLight intensity={0.4} />
-      <pointLight position={[5, 5, 5]} intensity={1} color="#13e0b3" />
-      <pointLight position={[-5, -5, 5]} intensity={0.8} color="#0ea5e9" />
-      <directionalLight position={[0, 0, 5]} intensity={0.5} color="#ffffff" />
+      <ambientLight intensity={0.6} />
+      <pointLight position={[5, 5, 5]} intensity={1.2} color="#13e0b3" />
+      <pointLight position={[-5, -5, 5]} intensity={1} color="#0ea5e9" />
+      <directionalLight position={[0, 0, 5]} intensity={0.8} color="#ffffff" />
     </group>
   );
 };
