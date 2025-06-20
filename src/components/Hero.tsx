@@ -3,14 +3,17 @@ import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { motion } from "framer-motion";
 import * as THREE from "three";
+import { MouseTrail } from "./MouseTrail";
+import { Interactive3D } from "./Interactive3D";
+import { CustomCursor } from "./CustomCursor";
 
 const ParticleNetwork = () => {
   const ref = useRef<THREE.Points>(null);
   const particlesPosition = useMemo(() => {
-    const positions = new Float32Array(5000 * 3);
-    for (let i = 0; i < 5000; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 3;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 3;
+    const positions = new Float32Array(3000 * 3);
+    for (let i = 0; i < 3000; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 6;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 6;
       positions[i * 3 + 2] = (Math.random() - 0.5) * 3;
     }
     return positions;
@@ -18,13 +21,16 @@ const ParticleNetwork = () => {
 
   useFrame((state, delta) => {
     if (ref.current) {
-      ref.current.rotation.x -= delta / 10;
-      ref.current.rotation.y -= delta / 15;
+      ref.current.rotation.x -= delta / 20;
+      ref.current.rotation.y -= delta / 30;
+      
+      // Add subtle floating movement
+      ref.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
     }
   });
 
   return (
-    <group rotation={[0, 0, Math.PI / 4]}>
+    <group rotation={[0, 0, Math.PI / 6]}>
       <points ref={ref}>
         <bufferGeometry>
           <bufferAttribute
@@ -34,11 +40,12 @@ const ParticleNetwork = () => {
         </bufferGeometry>
         <pointsMaterial
           args={[{
-            size: 0.005,
+            size: 0.003,
             color: "#13e0b3",
             transparent: true,
-            opacity: 0.8,
-            sizeAttenuation: true
+            opacity: 0.6,
+            sizeAttenuation: true,
+            blending: THREE.AdditiveBlending
           }]}
         />
       </points>
@@ -62,9 +69,18 @@ export const Hero = () => {
   };
 
   return (
-    <section className="relative h-screen flex items-center justify-center overflow-hidden">
-      {/* 3D Background */}
-      <div className="absolute inset-0 z-0">
+    <section className="relative h-screen flex items-center justify-center overflow-hidden cursor-none">
+      {/* Custom Cursor */}
+      <CustomCursor />
+      
+      {/* Mouse Trail */}
+      <MouseTrail />
+
+      {/* Interactive 3D Background */}
+      <Interactive3D />
+
+      {/* Original Particle Network (layered behind) */}
+      <div className="absolute inset-0 z-5 opacity-50">
         <Canvas
           camera={{ position: [0, 0, 1] }}
           className="h-full w-full"
@@ -73,8 +89,48 @@ export const Hero = () => {
         </Canvas>
       </div>
 
-      {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0f0f1a]/90 via-[#0f0f1a]/70 to-[#0f0f1a]/90 z-10"></div>
+      {/* Enhanced Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0f0f1a]/95 via-[#0f0f1a]/80 to-[#0f0f1a]/95 z-10"></div>
+
+      {/* Floating geometric shapes */}
+      <div className="absolute inset-0 z-15 pointer-events-none">
+        <motion.div
+          className="absolute top-20 left-20 w-4 h-4 border border-[#13e0b3]/30 rotate-45"
+          animate={{
+            y: [0, -20, 0],
+            opacity: [0.3, 0.7, 0.3],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute top-40 right-32 w-6 h-6 border border-[#0ea5e9]/40"
+          animate={{
+            rotate: [0, 360],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        />
+        <motion.div
+          className="absolute bottom-32 left-1/4 w-8 h-8 border border-[#13e0b3]/20 rounded-full"
+          animate={{
+            x: [0, 30, 0],
+            y: [0, -15, 0],
+          }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      </div>
 
       {/* Content */}
       <div className="relative z-20 text-center px-6 max-w-6xl mx-auto">
@@ -117,26 +173,30 @@ export const Hero = () => {
           className="flex flex-col sm:flex-row gap-6 justify-center items-center"
         >
           <motion.button
-            whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(19, 224, 179, 0.3)" }}
+            whileHover={{ 
+              scale: 1.05, 
+              boxShadow: "0 20px 40px rgba(19, 224, 179, 0.3)",
+            }}
             whileTap={{ scale: 0.95 }}
             onClick={scrollToContact}
-            className="bg-gradient-to-r from-[#13e0b3] to-[#0ea5e9] text-white px-8 py-4 rounded-full text-lg font-semibold shadow-lg hover:shadow-[#13e0b3]/25 transition-all duration-300"
+            className="bg-gradient-to-r from-[#13e0b3] to-[#0ea5e9] text-white px-8 py-4 rounded-full text-lg font-semibold shadow-lg hover:shadow-[#13e0b3]/25 transition-all duration-300 relative overflow-hidden group"
           >
-            Solicită o analiză gratuită
+            <span className="relative z-10">Solicită o analiză gratuită</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0ea5e9] to-[#13e0b3] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </motion.button>
           
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={scrollToPortfolio}
-            className="border-2 border-[#13e0b3] text-[#13e0b3] px-8 py-4 rounded-full text-lg font-semibold hover:bg-[#13e0b3] hover:text-white transition-all duration-300"
+            className="border-2 border-[#13e0b3] text-[#13e0b3] px-8 py-4 rounded-full text-lg font-semibold hover:bg-[#13e0b3] hover:text-white transition-all duration-300 relative overflow-hidden group"
           >
-            Vezi portofoliu
+            <span className="relative z-10">Vezi portofoliu</span>
           </motion.button>
         </motion.div>
       </div>
 
-      {/* Scroll Indicator */}
+      {/* Enhanced Scroll Indicator */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -146,13 +206,14 @@ export const Hero = () => {
         <motion.div
           animate={{ y: [0, 10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="w-6 h-10 border-2 border-[#13e0b3] rounded-full flex justify-center"
+          className="w-6 h-10 border-2 border-[#13e0b3] rounded-full flex justify-center relative overflow-hidden"
         >
           <motion.div
             animate={{ y: [0, 12, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="w-1 h-3 bg-[#13e0b3] rounded-full mt-2"
-          ></motion.div>
+            className="w-1 h-3 bg-gradient-to-b from-[#13e0b3] to-[#0ea5e9] rounded-full mt-2"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#13e0b3]/20 to-transparent opacity-50" />
         </motion.div>
       </motion.div>
     </section>
