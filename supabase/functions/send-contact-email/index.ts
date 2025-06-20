@@ -1,5 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@2.0.0";
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,68 +30,41 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Create email content
     const emailContent = `
-Mesaj nou de pe site-ul web:
+      <h2>Mesaj nou de pe site-ul IziWeb</h2>
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <p><strong>Nume:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Telefon:</strong> ${phone || 'Nu a fost furnizat'}</p>
+        <p><strong>Buget:</strong> ${budget || 'Nu a fost specificat'}</p>
+        
+        <h3>Mesaj:</h3>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px;">
+          ${message.replace(/\n/g, '<br>')}
+        </div>
+        
+        <hr style="margin: 20px 0;">
+        <p style="color: #666; font-size: 12px;">
+          Trimis pe ${new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' })}
+        </p>
+      </div>
+    `;
 
-Nume: ${name}
-Email: ${email}
-Telefon: ${phone || 'Nu a fost furnizat'}
-Buget: ${budget || 'Nu a fost specificat'}
-
-Mesaj:
-${message}
-
----
-Trimis pe ${new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' })}
-    `.trim();
-
-    // Get SMTP credentials from environment
-    const smtpUsername = Deno.env.get("SMTP_USERNAME");
-    const smtpPassword = Deno.env.get("SMTP_PASSWORD");
-
-    if (!smtpUsername || !smtpPassword) {
-      throw new Error("SMTP credentials not configured");
-    }
-
-    // Use a proper SMTP service - Resend for reliability
-    const emailData = {
+    // Send email using Resend
+    const emailResponse = await resend.emails.send({
       from: "IziWeb Contact <contact@iziweb.ro>",
       to: ["contact@iziweb.ro"],
+      reply_to: email,
       subject: `Mesaj nou de pe site - ${name}`,
-      text: emailContent,
-      reply_to: email
-    };
-
-    // Send using a reliable email service (we'll use a simple HTTP approach that works with your SMTP)
-    // For now, let's use a basic approach that should work
-    const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        service_id: "your_service_id", // This will be configured later
-        template_id: "your_template_id",
-        user_id: "your_user_id",
-        template_params: {
-          from_name: name,
-          from_email: email,
-          phone: phone || "Nu a fost furnizat",
-          budget: budget || "Nu a fost specificat",
-          message: message,
-          to_email: "contact@iziweb.ro"
-        }
-      })
+      html: emailContent,
     });
 
-    // For now, let's create a simple email log and return success
-    // In production, you'd want to use a proper SMTP library
-    console.log("Email data prepared:", emailData);
-    console.log("SMTP settings available:", { username: smtpUsername, hasPassword: !!smtpPassword });
+    console.log("Email sent successfully:", emailResponse);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Email trimis cu succes!" 
+        message: "Email trimis cu succes!",
+        emailId: emailResponse.data?.id 
       }),
       {
         status: 200,
