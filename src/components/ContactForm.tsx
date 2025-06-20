@@ -276,7 +276,7 @@ export const ContactForm = () => {
                   className={`w-full px-4 py-3 bg-white/10 border rounded-lg text-white placeholder-white/50 focus:border-[#13e0b3] focus:outline-none focus:ring-2 focus:ring-[#13e0b3]/20 transition-all duration-300 ${
                     validationErrors.phone ? 'border-red-500' : 'border-white/20'
                   }`}
-                  placeholder="+40 xxx xxx xxx"
+                  placeholder="0712345678 sau +40712345678"
                   maxLength={20}
                 />
                 {validationErrors.phone && (
@@ -296,7 +296,9 @@ export const ContactForm = () => {
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:border-[#13e0b3] focus:outline-none focus:ring-2 focus:ring-[#13e0b3]/20 transition-all duration-300"
                 >
                   <option value="" className="bg-[#1a1a2e] text-white">Selectează bugetul</option>
-                  <option value="sub-5000" className="bg-[#1a1a2e] text-white">Sub 5.000 EUR</option>
+                  <option value="sub-1000" className="bg-[#1a1a2e] text-white">Sub 1.000 EUR</option>
+                  <option value="1000-2500" className="bg-[#1a1a2e] text-white">1.000 - 2.500 EUR</option>
+                  <option value="2500-5000" className="bg-[#1a1a2e] text-white">2.500 - 5.000 EUR</option>
                   <option value="5000-10000" className="bg-[#1a1a2e] text-white">5.000 - 10.000 EUR</option>
                   <option value="10000-25000" className="bg-[#1a1a2e] text-white">10.000 - 25.000 EUR</option>
                   <option value="peste-25000" className="bg-[#1a1a2e] text-white">Peste 25.000 EUR</option>

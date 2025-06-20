@@ -36,7 +36,7 @@ class RateLimiter {
   }
 }
 
-// Input sanitization - fixed to allow spaces in names
+// Input sanitization - allows spaces for names and normal text
 export const sanitizeInput = (input: string): string => {
   return input
     .replace(/[<>]/g, '') // Remove potential HTML tags
@@ -51,10 +51,18 @@ export const validateEmail = (email: string): boolean => {
   return emailRegex.test(email) && email.length <= 254;
 };
 
-// Phone validation
+// Phone validation - more flexible to accept various formats
 export const validatePhone = (phone: string): boolean => {
-  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-  return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+  // Remove all spaces, dashes, parentheses
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+  
+  // Accept formats like:
+  // +40722123456 (international with +)
+  // 0722123456 (national with 0)
+  // 722123456 (without prefix)
+  const phoneRegex = /^(\+4|4|0)?[0-9]{8,9}$/;
+  
+  return phoneRegex.test(cleanPhone) && cleanPhone.length >= 8 && cleanPhone.length <= 13;
 };
 
 // Create rate limiter instance
