@@ -39,12 +39,14 @@ const ParticleNetwork = () => {
           />
         </bufferGeometry>
         <pointsMaterial
-          size={0.002}
-          color="#13e0b3"
-          transparent
-          opacity={0.4}
-          sizeAttenuation
-          blending={THREE.AdditiveBlending}
+          args={[{
+            size: 0.002,
+            color: "#13e0b3",
+            transparent: true,
+            opacity: 0.4,
+            sizeAttenuation: true,
+            blending: THREE.AdditiveBlending
+          }]}
         />
       </points>
     </group>
@@ -88,7 +90,7 @@ export const Hero = () => {
       </div>
 
       {/* Gradient Overlay - reduced opacity to show 3D elements better */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0f0f1a]/85 via-[#0f0f1a]/70 to-[#0f0f1a]/85 z-10"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0f0f1a]/50 via-[#0f0f1a]/40 to-[#0f0f1a]/50 z-10"></div>
 
       {/* Floating geometric shapes */}
       <div className="absolute inset-0 z-15 pointer-events-none">

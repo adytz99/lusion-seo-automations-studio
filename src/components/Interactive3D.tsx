@@ -93,12 +93,14 @@ const InteractiveGeometry = () => {
           />
         </bufferGeometry>
         <pointsMaterial
-          size={0.025}
-          color="#13e0b3"
-          transparent
-          opacity={0.9}
-          sizeAttenuation
-          blending={THREE.AdditiveBlending}
+          args={[{
+            size: 0.025,
+            color: "#13e0b3",
+            transparent: true,
+            opacity: 0.9,
+            sizeAttenuation: true,
+            blending: THREE.AdditiveBlending
+          }]}
         />
       </points>
 
@@ -111,10 +113,12 @@ const InteractiveGeometry = () => {
           >
             <sphereGeometry args={[sphere.scale, 12, 12]} />
             <meshPhongMaterial
-              color={sphere.color}
-              transparent
-              opacity={0.7}
-              wireframe={index % 2 === 0}
+              args={[{
+                color: sphere.color,
+                transparent: true,
+                opacity: 0.7,
+                wireframe: index % 2 === 0
+              }]}
             />
           </mesh>
         ))}
