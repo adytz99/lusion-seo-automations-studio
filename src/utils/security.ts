@@ -36,7 +36,7 @@ class RateLimiter {
   }
 }
 
-// Input sanitization
+// Input sanitization - fixed to allow spaces in names
 export const sanitizeInput = (input: string): string => {
   return input
     .replace(/[<>]/g, '') // Remove potential HTML tags
