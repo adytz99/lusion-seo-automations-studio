@@ -10,27 +10,27 @@ import { CustomCursor } from "./CustomCursor";
 const ParticleNetwork = () => {
   const ref = useRef<THREE.Points>(null);
   const particlesPosition = useMemo(() => {
-    const positions = new Float32Array(3000 * 3);
-    for (let i = 0; i < 3000; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 6;
+    const positions = new Float32Array(2000 * 3);
+    for (let i = 0; i < 2000; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 8;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 6;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 3;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 4;
     }
     return positions;
   }, []);
 
   useFrame((state, delta) => {
     if (ref.current) {
-      ref.current.rotation.x -= delta / 20;
-      ref.current.rotation.y -= delta / 30;
+      ref.current.rotation.x -= delta / 30;
+      ref.current.rotation.y -= delta / 40;
       
       // Add subtle floating movement
-      ref.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
+      ref.current.position.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
     }
   });
 
   return (
-    <group rotation={[0, 0, Math.PI / 6]}>
+    <group rotation={[0, 0, Math.PI / 8]}>
       <points ref={ref}>
         <bufferGeometry>
           <bufferAttribute
@@ -39,14 +39,12 @@ const ParticleNetwork = () => {
           />
         </bufferGeometry>
         <pointsMaterial
-          args={[{
-            size: 0.003,
-            color: "#13e0b3",
-            transparent: true,
-            opacity: 0.6,
-            sizeAttenuation: true,
-            blending: THREE.AdditiveBlending
-          }]}
+          size={0.002}
+          color="#13e0b3"
+          transparent
+          opacity={0.4}
+          sizeAttenuation
+          blending={THREE.AdditiveBlending}
         />
       </points>
     </group>
@@ -76,11 +74,11 @@ export const Hero = () => {
       {/* Mouse Trail */}
       <MouseTrail />
 
-      {/* Interactive 3D Background */}
+      {/* Main Interactive 3D Background */}
       <Interactive3D />
 
-      {/* Original Particle Network (layered behind) */}
-      <div className="absolute inset-0 z-5 opacity-50">
+      {/* Secondary Particle Network (subtle background layer) */}
+      <div className="absolute inset-0 z-5 opacity-30">
         <Canvas
           camera={{ position: [0, 0, 1] }}
           className="h-full w-full"
@@ -89,16 +87,16 @@ export const Hero = () => {
         </Canvas>
       </div>
 
-      {/* Enhanced Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0f0f1a]/95 via-[#0f0f1a]/80 to-[#0f0f1a]/95 z-10"></div>
+      {/* Gradient Overlay - reduced opacity to show 3D elements better */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0f0f1a]/85 via-[#0f0f1a]/70 to-[#0f0f1a]/85 z-10"></div>
 
       {/* Floating geometric shapes */}
       <div className="absolute inset-0 z-15 pointer-events-none">
         <motion.div
-          className="absolute top-20 left-20 w-4 h-4 border border-[#13e0b3]/30 rotate-45"
+          className="absolute top-20 left-20 w-4 h-4 border border-[#13e0b3]/40 rotate-45"
           animate={{
             y: [0, -20, 0],
-            opacity: [0.3, 0.7, 0.3],
+            opacity: [0.4, 0.8, 0.4],
           }}
           transition={{
             duration: 4,
@@ -107,10 +105,10 @@ export const Hero = () => {
           }}
         />
         <motion.div
-          className="absolute top-40 right-32 w-6 h-6 border border-[#0ea5e9]/40"
+          className="absolute top-40 right-32 w-6 h-6 border border-[#0ea5e9]/50"
           animate={{
             rotate: [0, 360],
-            scale: [1, 1.2, 1],
+            scale: [1, 1.3, 1],
           }}
           transition={{
             duration: 8,
@@ -119,13 +117,25 @@ export const Hero = () => {
           }}
         />
         <motion.div
-          className="absolute bottom-32 left-1/4 w-8 h-8 border border-[#13e0b3]/20 rounded-full"
+          className="absolute bottom-32 left-1/4 w-8 h-8 border border-[#13e0b3]/30 rounded-full"
           animate={{
-            x: [0, 30, 0],
-            y: [0, -15, 0],
+            x: [0, 40, 0],
+            y: [0, -20, 0],
           }}
           transition={{
             duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 right-20 w-3 h-3 bg-[#13e0b3]/20 rounded-full"
+          animate={{
+            scale: [1, 1.5, 1],
+            opacity: [0.2, 0.6, 0.2],
+          }}
+          transition={{
+            duration: 3,
             repeat: Infinity,
             ease: "easeInOut",
           }}
